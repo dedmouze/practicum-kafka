@@ -1,0 +1,71 @@
+=== Шаг 1. Создание топика ===
+
+Команда создания топика (3 партиции, 2 реплики) через CLI в контейнере kafka-1:
+
+    docker exec -it kafka-1 kafka-topics \
+      --create \
+      --topic my-topic \
+      --bootstrap-server kafka-1:9092,kafka-2:9092 \
+      --partitions 3 \
+      --replication-factor 2
+
+Результат:
+
+    Created topic my-topic.
+
+
+=== Подробная информация о топике ===
+
+Команда для получения информации:
+
+    docker exec -it kafka-1 kafka-topics \
+      --describe \
+      --topic my-topic \
+      --bootstrap-server kafka-1:9092,kafka-2:9092
+
+Реальный вывод:
+
+Topic: my-topic TopicId: 7AIcGjRvTrOpb2JPR0wzLw PartitionCount: 3       ReplicationFactor: 2    Configs: 
+        Topic: my-topic Partition: 0    Leader: 1       Replicas: 1,2   Isr: 1,2
+        Topic: my-topic Partition: 1    Leader: 2       Replicas: 2,1   Isr: 2,1
+        Topic: my-topic Partition: 2    Leader: 1       Replicas: 1,2   Isr: 1,2
+
+Пояснение:
+- PartitionCount: 3       — топик разбит на 3 партиции (для параллельной обработки).
+- ReplicationFactor: 2    — каждая партиция имеет 2 реплики (для отказоустойчивости).
+- Leader                   — брокер, обслуживающий чтение/запись данной партиции.
+- Replicas: 1,2            — список брокеров, хранящих реплики партиции.
+- Isr: 1,2                 — In-Sync Replicas: реплики, синхронизированные с лидером.
+- Обратите внимание: лидеры распределены между брокерами (партиция 1 имеет лидера 2),
+  это признак корректно работающего кластера из двух брокеров.
+
+
+=== Проверка consumer-групп ===
+
+После запуска приложений появляются две независимые группы:
+
+    docker exec -it kafka-1 kafka-consumer-groups \
+      --bootstrap-server kafka-1:9092 --list
+
+Вывод:
+
+    single-message-group
+    batch-message-group
+
+Детальная информация по batch-группе:
+
+    docker exec -it kafka-1 kafka-consumer-groups \
+      --bootstrap-server kafka-1:9092 --describe --group batch-message-group
+
+Вывод:
+
+GROUP                TOPIC     PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID
+batch-message-group  my-topic  0          499             501             2    rdkafka-4d94...
+batch-message-group  my-topic  1          546             546             0    rdkafka-4d94...
+batch-message-group  my-topic  2          492             492             0    rdkafka-776f...
+
+Пояснение:
+- Партиции 0 и 1 обрабатываются первым экземпляром batch-consumer,
+  партиция 2 — вторым. Это результат rebalance между двумя экземплярами
+  одной группы (deploy replicas=2 / --scale batch-consumer=2).
+- LAG = 0 на партициях 1 и 2 означает, что консьюмеры успевают за продюсерами.
