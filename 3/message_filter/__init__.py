@@ -1,0 +1,1 @@
+"""Kafka message filtering application."""
