@@ -1,1 +1,2 @@
 faust-streaming[rocksdict]==0.11.3
+aiokafka>=0.10.0,<0.11.0

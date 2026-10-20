@@ -103,6 +103,7 @@ docker compose down -v
 Пользователь `alice` блокирует `spammer`:
 
 ```bash
+docker compose exec kafka kafka-console-producer --bootstrap-server kafka:29092 --topic blocked_users --property parse.key=true --property key.separator=:
 docker compose exec kafka kafka-console-producer \
   --bootstrap-server kafka:29092 \
   --topic blocked_users \
@@ -117,6 +118,7 @@ alice:{"user_id":"alice","blocked_user_id":"spammer","action":"block"}
 ### 2. Добавить запрещённые слова
 
 ```bash
+docker compose exec kafka kafka-console-producer --bootstrap-server kafka:29092 --topic banned_words --property parse.key=true --property key.separator=:
 docker compose exec kafka kafka-console-producer \
   --bootstrap-server kafka:29092 \
   --topic banned_words \
@@ -134,6 +136,7 @@ rude:{"word":"rude","action":"add"}
 ### 3. Запустить consumer результата
 
 ```bash
+docker compose exec kafka kafka-console-consumer --bootstrap-server kafka:29092 --topic filtered_messages --from-beginning --property print.key=true --property key.separator=:
 docker compose exec kafka kafka-console-consumer \
   --bootstrap-server kafka:29092 \
   --topic filtered_messages \
@@ -145,6 +148,7 @@ docker compose exec kafka kafka-console-consumer \
 ### 4. Отправить тестовые сообщения
 
 ```bash
+docker compose exec kafka kafka-console-producer --bootstrap-server kafka:29092 --topic messages --property parse.key=true --property key.separator=:
 docker compose exec kafka kafka-console-producer \
   --bootstrap-server kafka:29092 \
   --topic messages \
